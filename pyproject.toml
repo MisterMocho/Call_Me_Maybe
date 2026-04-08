@@ -1,0 +1,45 @@
+[project]
+name = "call_me_maybe"
+version = "1.2.0"
+description = "A function calling tool using constrained decoding with a small LLM."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pydantic",
+]
+
+[build-systems]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "flake8",
+    "flake8-pyproject>=1.2.4",
+    "mypy",
+    "pytest",
+]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+exclude = ["^llm_sdk/", "^\\.venv/"]
+
+[[tool.mypy.overrides]]
+module = ["llm_sdk", "llm_sdk.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+ignore_errors = true
+
+[tool.flake8]
+max-line-length = 79
+exclude = [".git", "__pycache__", ".venv", "llm_sdk"]
+
+[tool.pyright]
+extraPaths = ["./llm_sdk"]
