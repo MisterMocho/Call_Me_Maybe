@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import Any
 from llm_sdk import Small_LLM_Model
-from vocab_loader import VocabLoader
+from src.vocab_loader import VocabLoader
 
 
 class LLMEngine:
     def __init__(self) -> None:
         print("Initializing LLM engine...")
         self.model: Any = Small_LLM_Model()
-        vocab_path_str: str = str(self.model.get_path_to_vocabulary_json())
+        vocab_path_str: str = str(self.model.get_path_to_vocab_file())
         self.vocab = VocabLoader(Path(vocab_path_str))
         print("LLM Engine and Vocab ready!")
 

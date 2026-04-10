@@ -2,7 +2,7 @@ import sys
 import json
 from pathlib import Path
 from pydantic import TypeAdapter
-from schemas import FunctionDefinition, TestPrompt
+from src.schemas import FunctionDefinition, TestPrompt
 
 
 def load_data(input_dir: Path) -> tuple[list[FunctionDefinition],
