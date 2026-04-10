@@ -5,6 +5,8 @@ description = "A function calling tool using constrained decoding with a small L
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "accelerate>=1.13.0",
+    "llm-sdk",
     "numpy",
     "pydantic",
 ]
@@ -43,3 +45,11 @@ exclude = [".git", "__pycache__", ".venv", "llm_sdk"]
 
 [tool.pyright]
 extraPaths = ["./llm_sdk"]
+
+[tool.uv.workspace]
+members = [
+    "llm_sdk",
+]
+
+[tool.uv.sources]
+llm-sdk = { workspace = true }
