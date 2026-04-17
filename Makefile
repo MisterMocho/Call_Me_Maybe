@@ -24,4 +24,8 @@ fclean: clean
 
 re: fclean all
 
+lint:
+	uv run mypy src
+	uv run flake8 src
+
 .PHONY: all install add-sdk run clean fclean re
