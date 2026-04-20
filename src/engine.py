@@ -34,7 +34,7 @@ class LLMEngine:
                     if i not in allowed_ids_to_start:
                         logits[i] = -math.inf
             next_token_id = logits.index(max(logits))
-            if next_token_id == self.model._tokenizer.eos_token_id:
+            if next_token_id == 151645:
                 break
             generated_ids.append(next_token_id)
             input_ids.append(next_token_id)

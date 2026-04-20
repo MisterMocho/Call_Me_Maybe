@@ -5,11 +5,9 @@ from pydantic import TypeAdapter
 from src.schemas import FunctionDefinition, TestPrompt
 
 
-def load_data(input_dir: Path) -> tuple[list[FunctionDefinition],
-                                        list[TestPrompt]]:
-    func_defs_path = input_dir / "functions_definition.json"
-    tests_path = input_dir / "function_calling_tests.json"
-
+def load_data(func_defs_path: Path,
+              tests_path: Path) -> tuple[list[FunctionDefinition],
+                                         list[TestPrompt]]:
     try:
         with open(func_defs_path, "r", encoding="utf-8") as f:
             raw_defs = json.load(f)

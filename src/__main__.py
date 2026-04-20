@@ -25,7 +25,7 @@ def main() -> None:
     # 2. Carregar os Dados
     print(f"Loading functions from: {func_path}")
     print(f"Loading tests from: {tests_path}")
-    tools, prompts = load_data(func_path.parent)
+    tools, prompts = load_data(func_path, tests_path)
     # 3. Iniciar o Motor
     engine = LLMEngine()
     final_results = []
@@ -86,7 +86,7 @@ def main() -> None:
             print(" ✅")
 
         except json.JSONDecodeError:
-            print(" ❌ (Erro ao descodificar JSON)")
+            print(" ❌ (Error decoding JSON)")
 
     # 4. Guardar no ficheiro exigido pelo subject
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -94,7 +94,7 @@ def main() -> None:
         # A escola geralmente avalia estes JSONs formatados de forma legível
         json.dump(final_results, f, indent=4, ensure_ascii=False)
 
-    print(f"\n🎉 Bateria concluída! Ficheiro guardado em: {output_path}")
+    print(f"\nAll tests are now concluded! File saved in: {output_path}")
 
 
 if __name__ == "__main__":
