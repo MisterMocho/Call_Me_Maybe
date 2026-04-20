@@ -47,4 +47,4 @@ class LLMEngine:
             if step > 0 and open_brackets == 0:
                 break
         print("\n\n---Generation Completed---")
-        return self.model.decode(generated_ids)
+        return str(self.model.decode(generated_ids))

@@ -14,6 +14,9 @@ add-sdk:
 run:
 	uv run python -m src
 
+debug:
+	uv run python -m pdb -m src
+
 clean:
 	rm -rf .venv
 	rm -rf .uv_cache
@@ -28,4 +31,8 @@ lint:
 	uv run mypy src
 	uv run flake8 src
 
-.PHONY: all install add-sdk run clean fclean re
+lint-strict:
+	uv run flake8 src
+	uv run mypy src --strict
+
+.PHONY: all install add-sdk run debug clean fclean re lint lint-strict
