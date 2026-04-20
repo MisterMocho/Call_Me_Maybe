@@ -6,7 +6,7 @@ from src.engine import LLMEngine
 
 
 def main() -> None:
-    # 1. Configurar os argumentos de linha de comandos exigidos pelo subject
+    # 1. Argument config as asked by the subject
     parser = argparse.ArgumentParser(description="Call Me Maybe -"
                                      "Function Calling Inference")
     parser.add_argument("--functions_definition", type=str,
@@ -17,60 +17,61 @@ def main() -> None:
                         default="data/output/function_calling_results.json")
     args = parser.parse_args()
 
-    # Converter caminhos para Path objects
+    # Converting file locations to path objects
     func_path = Path(args.functions_definition)
     tests_path = Path(args.input)
     output_path = Path(args.output)
 
-    # 2. Carregar os Dados
+    # 2. Loading Data
     print(f"Loading functions from: {func_path}")
     print(f"Loading tests from: {tests_path}")
     tools, prompts = load_data(func_path, tests_path)
-    # 3. Iniciar o Motor
+    # 3. Starting the Engine
     engine = LLMEngine()
     final_results = []
+    # 4. Base instructions
+    base_instructions = (
+        "You are an expert AI assistant. Your task is to call"
+        " a function to help the user.\n"
+    )
+    base_instructions += "You have access to the following tools:\n\n"
 
-    print("\n🚀 A INICIAR BATERIA DE TESTES...")
+    for tool in tools:
+        base_instructions += f"Function Name: {tool.name}\n"
+        base_instructions += f"Description: {tool.description}\n"
+        base_instructions += "Parameters:\n"
+        if tool.parameters:
+            for param_name, param_def in tool.parameters.items():
+                base_instructions += (
+                    f"  - {param_name} (type: {param_def.type})\n"
+                )
+        else:
+            base_instructions += "  None\n"
+        base_instructions += "----------\n"
+
+    base_instructions += (
+        "\nBased on the user's query, output ONLY a JSON "
+        "object calling the correct function.\n"
+    )
+    base_instructions += "The JSON must strictly follow this format:\n"
+    base_instructions += (
+        '{"name": "function_name", "parameters": {"param1": "value"}}\n\n'
+    )
+    print("\nInitiating Tests...")
 
     for i, current_test in enumerate(prompts, 1):
-        # O mesmo prompt de sistema que já validámos que funciona
-        instrucoes = (
-            "You are an expert AI assistant. Your task is to call"
-            " a function to help the user.\n"
-        )
-        instrucoes += "You have access to the following tools:\n\n"
-
-        for tool in tools:
-            instrucoes += f"Function Name: {tool.name}\n"
-            instrucoes += f"Description: {tool.description}\n"
-            instrucoes += "Parameters:\n"
-            if tool.parameters:
-                for param_name, param_def in tool.parameters.items():
-                    instrucoes += (
-                        f"  - {param_name} (type: {param_def.type})\n"
-                    )
-            else:
-                instrucoes += "  None\n"
-            instrucoes += "----------\n"
-
-        instrucoes += (
-            "\nBased on the user's query, output ONLY a JSON "
-            "object calling the correct function.\n"
-        )
-        instrucoes += "The JSON must strictly follow this format:\n"
-        instrucoes += (
-            '{"name": "function_name", "parameters": {"param1": "value"}}\n\n'
-        )
-        instrucoes += f"User prompt: {current_test.prompt}\n"
-        instrucoes += "Assistant: "
+        # Passing the prompts already validated above
+        instructions = base_instructions
+        instructions += f"User prompt: {current_test.prompt}\n"
+        instructions += "Assistant: "
 
         print(
-            f"\n[Teste {i}/{len(prompts)}] "
-            f"A processar: '{current_test.prompt}'", end="", flush=True
+            f"\n[Test {i}/{len(prompts)}] "
+            f"Processing: '{current_test.prompt}'", end="", flush=True
         )
 
         # Gerar resposta forçada
-        answer_txt = engine.generate(instrucoes, max_tokens=150)
+        answer_txt = engine.generate(instructions, max_tokens=150)
 
         try:
             # Lemos o JSON do modelo
