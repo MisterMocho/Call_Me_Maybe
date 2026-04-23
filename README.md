@@ -88,3 +88,4 @@ The core of this project relies on intercepting the model's generation process b
 - [Understanding Large Language Models](https://en.wikipedia.org/wiki/Large_language_model)
 - [Constrained Decoding in Modern AI](https://huggingface.co/docs/transformers/main/en/generation_strategies)
 - **AI Usage:** AI models were used as a pair-programming partner during development. They assisted in debugging complex tracebacks (specifically related to Mypy configuration conflicts and the undocumented PyTorch Tensor behavior in the SDK), and were used to discuss the logical flow of the brace-counting algorithm before hand-coding the implementation in Python.
+```

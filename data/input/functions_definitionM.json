@@ -70,7 +70,7 @@
   },
   {
     "name": "fn_multiply_numbers",
-    "description": "Multiply two numbers together and return their product.",
+    "description": "Multiply two numbers together and return their product in float value.",
     "parameters": {
       "a": {
         "type": "number"
