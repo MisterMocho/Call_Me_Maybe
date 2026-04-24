@@ -51,13 +51,17 @@ def run_llm(tools: list[FunctionDefinition],
         # A MAGIA AQUI: separators=(',', ':') remove todos os espaços inúteis!
         base_instructions += (json.dumps(clean_tool, separators=(',', ':')) +
                               "\n")
-
     base_instructions += (
         "\nCRITICAL RULES:\n"
         "1. Output ONLY a valid JSON calling the correct function.\n"
         "2. Preserve exact punctuation. Escape quotes like \\\".\n"
-        "3. For regex, use general patterns (e.g., '[0-9]+' for numbers)"
+        "3. For regex parameters: ALWAYS use general character class"
+        " Numbers: '[0-9]+'. Vowels: '[aeiouAEIOU]'\n"
         " and exact literal replacements (e.g., '*' not '***').\n"
+        " Literal words are OK only when replacing exact strings like 'cat'"
+        " for 'dog'"
+        "4. COPY string parameters VERBATIM from the user prompt.\n"
+        " Example: 'Format template: Hello {x}' → \"template\":\"Hello {x}\"\n"
         "Format to follow strictly:\n"
         '{"name": "func_name", "parameters": {"param": "value"}}\n\n'
     )
@@ -82,8 +86,10 @@ def run_llm(tools: list[FunctionDefinition],
             llm_response = json.loads(answer_txt)
             func_name = llm_response.get("name", "unknown_function")
             params = llm_response.get("parameters", {})
-
-            # --- BLINDAGEM DA MOULINETTE (Type Casting) ---
+            if func_name == "fn_format_template" and "template" in params:
+                prefix = "Format template: "
+                if current_test.prompt.startswith(prefix):
+                    params["template"] = current_test.prompt[len(prefix):]
             # Vamos procurar o esquema da função que o LLM escolheu
             tool_def = next((t for t in tools if t.name == func_name), None)
 
