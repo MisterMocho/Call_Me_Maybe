@@ -45,7 +45,6 @@ def run_llm(tools: list[FunctionDefinition],
     for tool in tools:
         clean_tool = {
             "name": tool.name,
-            "description": tool.description,
             "parameters": {k: v.type for k, v in tool.parameters.items()}
         }
         # A MAGIA AQUI: separators=(',', ':') remove todos os espaços inúteis!
@@ -55,8 +54,8 @@ def run_llm(tools: list[FunctionDefinition],
         "\nCRITICAL RULES:\n"
         "1. Output ONLY a valid JSON calling the correct function.\n"
         "2. Preserve exact punctuation. Escape quotes like \\\".\n"
-        "3. For regex parameters: ALWAYS use general character class"
-        'Vowels: [aeiouAEIOU]'
+        "3. For regex parameters: ALWAYS use general character class\n"
+        'Vowels: [aeiouAEIOU]\n'
         'EXAMPLES (use the tools listed above, NOT these example names):\n'
         "User prompt: Replace all digits in 'abc123' with X\n"
         'Assistant: {"name":"<tool_name>",'
@@ -66,9 +65,8 @@ def run_llm(tools: list[FunctionDefinition],
         'Assistant: {"name":"<tool_name>",'
         '"parameters":{"<param>":"foo and foo","regex":"foo",'
         '"replacement":"bar"}}\n\n'
-        "4. COPY string parameters VERBATIM from the user prompt.\n"
         'User prompt: Render string: Welcome "{user}" to the team\n'
-        'Assistant: {"name": "fn_render", "parameters": '
+        'Assistant: {"name": "<tool_name>", "parameters": '
         '{"template": "Welcome \\"{user}\\" to the team"}}\n\n'
     )
     print("\nInitiating Tests...")
