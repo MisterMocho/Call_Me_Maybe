@@ -23,7 +23,7 @@ class LLMEngine:
         json_allowed_tokens = set()
         for t_id, t_str in self.vocab.id_to_token.items():
             clean_str = t_str.replace("Ġ", "").replace("Ċ", "")
-            # Adiciona o token se for apenas composto por caracteres permitidos
+            # Adds the token only if made by allowed characters
             if not clean_str or all(c in allowed_chars for c in clean_str):
                 json_allowed_tokens.add(t_id)
         json_allowed_tokens.add(151645)
@@ -36,7 +36,7 @@ class LLMEngine:
                 strict_keys_tokens.add(t_id)
 
         sample_logits = self.model.get_logits_from_input_ids([151645])
-        # Compatibilidade caso venha em Tensor
+        # Compatibility in case it is a tensor
         if hasattr(sample_logits, "tolist"):
             sample_logits = sample_logits.tolist()
         real_vocab_size = len(sample_logits)
@@ -49,10 +49,10 @@ class LLMEngine:
         print("LLM Engine and Vocab ready!")
 
     def custom_decode(self, token_ids: list[int]) -> str:
-        # 1. Obter as strings cruas do dicionário
+        # 1. Gets the raw strings from the dictionary
         raw_text = "".join(self.vocab.id_to_token.get(t_id, "")
                            for t_id in token_ids)
-        # 2. Substituir os caracteres BPE pelos normais
+        # 2. Replaces all BPE characters by normal ones
         clean_text = raw_text.replace("Ġ", " ").replace("Ċ", "\n")
         return clean_text
 
