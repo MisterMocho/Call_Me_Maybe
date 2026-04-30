@@ -41,13 +41,13 @@ def run_llm(tools: list[FunctionDefinition],
         "Task: Select the EXACT tool that matches the user's intent.\n"
         "Available tools:\n"
     )
-    # Formatar as tools como objetos JSON nativos (o modelo ADORA isto)
+    # Formatting tools as native JSON Objects
     for tool in tools:
         clean_tool = {
             "name": tool.name,
             "parameters": {k: v.type for k, v in tool.parameters.items()}
         }
-        # A MAGIA AQUI: separators=(',', ':') remove todos os espaços inúteis!
+        # MAGIC: separators=(',', ':') removes all useless spaces!
         base_instructions += (json.dumps(clean_tool, separators=(',', ':')) +
                               "\n")
     base_instructions += (
@@ -82,22 +82,22 @@ def run_llm(tools: list[FunctionDefinition],
             f"Processing: '{current_test.prompt}'"
         )
 
-        # Gerar resposta forçada
+        # Generates our enforced answer
         answer_txt = engine.generate(instructions, max_tokens=75)
 
         try:
-            # Lemos o JSON do modelo
+            # Reads JSON from the model
             llm_response = json.loads(answer_txt)
             func_name = llm_response.get("name", "unknown_function")
             params = llm_response.get("parameters", {})
-            # Vamos procurar o esquema da função que o LLM escolheu
+            # We look for the function schema that the model chose
             tool_def = next((t for t in tools if t.name == func_name), None)
             if tool_def and tool_def.parameters:
                 for p_name, p_val in params.items():
                     if p_name in tool_def.parameters:
                         p_type = tool_def.parameters[p_name].type
                         try:
-                            # Forçar o tipo exato exigido pela escola
+                            # We transform the data into the correct value
                             if p_type == "number":
                                 params[p_name] = float(p_val)
                             elif p_type == "integer":
@@ -105,7 +105,7 @@ def run_llm(tools: list[FunctionDefinition],
                             elif p_type == "string":
                                 params[p_name] = str(p_val)
                             elif p_type == "boolean":
-                                # Converte de forma segura para booleanos
+                                # Safely converts to boolean
                                 if isinstance(p_val, str):
                                     params[p_name] = p_val.lower() in (
                                         ['true', '1', 'yes']
@@ -123,9 +123,8 @@ def run_llm(tools: list[FunctionDefinition],
         except json.JSONDecodeError:
             print(" ❌ (Error decoding JSON)")
 
-    # 4. Guardar no ficheiro exigido pelo subject
+    # 4. Saves to the file
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
-        # A escola geralmente avalia estes JSONs formatados de forma legível
         json.dump(final_results, f, indent=4, ensure_ascii=False)
     print(f"\nAll tests are now concluded! File saved in: {output_path}")
