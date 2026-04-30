@@ -14,16 +14,6 @@ class LLMEngine:
         symbols = ['{', '"', ':']
         json_symbols = {sym: self.vocab.find_tokens_for_char(sym)
                         for sym in symbols}
-        self.allowed_step_0 = set()
-        for t_id in json_symbols['{']:
-            token_str = self.vocab.id_to_token.get(t_id, "")
-            if token_str.replace("Ġ", "").strip() == '{':
-                self.allowed_step_0.add(t_id)
-        self.allowed_step_1 = set()
-        for t_id in json_symbols['"']:
-            token_str = self.vocab.id_to_token.get(t_id, "")
-            if token_str.replace("Ġ", "").strip().startswith('"'):
-                self.allowed_step_1.add(t_id)
         self.t_quote = next(iter(json_symbols['"']))
         self.t_colon = next(iter(json_symbols[':']))
         self.t_open_brace = next(iter(json_symbols['{']))
@@ -58,10 +48,6 @@ class LLMEngine:
             self.mask_strict_keys[t_id] = 0.0
         print("LLM Engine and Vocab ready!")
 
-    def get_json_symbols_ids(self) -> dict[str, set[int]]:
-        symbols = ['{', '}', ':', ',', '"']
-        return {sym: self.vocab.find_tokens_for_char(sym) for sym in symbols}
-
     def custom_decode(self, token_ids: list[int]) -> str:
         # 1. Obter as strings cruas do dicionário
         raw_text = "".join(self.vocab.id_to_token.get(t_id, "")
@@ -89,16 +75,12 @@ class LLMEngine:
         for _ in range(max_tokens):
             stripped_text = generated_text.strip()
             # --- EXTREME INFERENCE SKIPPING (Fast-Forwarding) ---
-            if (stripped_text.endswith('"name')
-                    or stripped_text.endswith('"parameters')):
+            if (stripped_text.endswith('"parameters')):
                 next_token_id = self.t_quote
-            elif (stripped_text.endswith('"name"')
-                    or stripped_text.endswith('"parameters"')):
+            elif (stripped_text.endswith('"parameters"')):
                 next_token_id = self.t_colon
             elif stripped_text.endswith('"parameters":'):
                 next_token_id = self.t_open_brace
-            elif stripped_text.endswith('"name":'):
-                next_token_id = self.t_quote
             elif not inside_string and stripped_text.endswith('{'):
                 next_token_id = self.t_quote
             elif not inside_string and stripped_text.endswith(','):
@@ -146,7 +128,10 @@ class LLMEngine:
                         last_structural_char = char
                     elif char in ':,':
                         last_structural_char = char
-                prev_char = char
+                if prev_char == '\\' and char == '\\':
+                    prev_char = ''
+                else:
+                    prev_char = char
             if open_brackets == 0:
                 break
         print("\n\n---Generation Completed---")

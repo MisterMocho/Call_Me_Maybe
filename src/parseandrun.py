@@ -56,10 +56,16 @@ def run_llm(tools: list[FunctionDefinition],
         "1. Output ONLY a valid JSON calling the correct function.\n"
         "2. Preserve exact punctuation. Escape quotes like \\\".\n"
         "3. For regex parameters: ALWAYS use general character class"
-        " Numbers: '[0-9]+'. Vowels: '[aeiouAEIOU]'\n"
-        " and exact literal replacements (e.g., '*' not '***').\n"
-        " Literal words are OK only when replacing exact strings like 'cat'"
-        " for 'dog'"
+        'Vowels: [aeiouAEIOU]'
+        'EXAMPLES (use the tools listed above, NOT these example names):\n'
+        "User prompt: Replace all digits in 'abc123' with X\n"
+        'Assistant: {"name":"<tool_name>",'
+        '"parameters":{"<param>":"abc123","regex":"[0-9]+","replacement":"X"'
+        '}}\n\n'
+        "User prompt: Substitute the word 'foo' with 'bar' in 'foo and foo'\n"
+        'Assistant: {"name":"<tool_name>",'
+        '"parameters":{"<param>":"foo and foo","regex":"foo",'
+        '"replacement":"bar"}}\n\n'
         "4. COPY string parameters VERBATIM from the user prompt.\n"
         'User prompt: Render string: Welcome "{user}" to the team\n'
         'Assistant: {"name": "fn_render", "parameters": '
