@@ -74,14 +74,14 @@
         "prompt": "Format template: Hello {user}'s profile!",
         "name": "fn_format_template",
         "parameters": {
-            "template": "Format template: Hello {user}'s profile!"
+            "template": "Hello {user}'s profile!"
         }
     },
     {
         "prompt": "Format template: Say \"hello\" to {name}",
         "name": "fn_format_template",
         "parameters": {
-            "template": "Format template: Say \"hello\" to {name}"
+            "template": "Say \"hello\" to {name}"
         }
     }
 ]

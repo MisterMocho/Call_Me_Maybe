@@ -61,9 +61,9 @@ def run_llm(tools: list[FunctionDefinition],
         " Literal words are OK only when replacing exact strings like 'cat'"
         " for 'dog'"
         "4. COPY string parameters VERBATIM from the user prompt.\n"
-        " Example: 'Format template: Hello {x}' → \"template\":\"Hello {x}\"\n"
-        "Format to follow strictly:\n"
-        '{"name": "func_name", "parameters": {"param": "value"}}\n\n'
+        'User prompt: Render string: Welcome "{user}" to the team\n'
+        'Assistant: {"name": "fn_render", "parameters": '
+        '{"template": "Welcome \\"{user}\\" to the team"}}\n\n'
     )
     print("\nInitiating Tests...")
 
@@ -86,13 +86,8 @@ def run_llm(tools: list[FunctionDefinition],
             llm_response = json.loads(answer_txt)
             func_name = llm_response.get("name", "unknown_function")
             params = llm_response.get("parameters", {})
-            if func_name == "fn_format_template" and "template" in params:
-                prefix = "Format template: "
-                if current_test.prompt.startswith(prefix):
-                    params["template"] = current_test.prompt[len(prefix):]
             # Vamos procurar o esquema da função que o LLM escolheu
             tool_def = next((t for t in tools if t.name == func_name), None)
-
             if tool_def and tool_def.parameters:
                 for p_name, p_val in params.items():
                     if p_name in tool_def.parameters:

@@ -84,6 +84,7 @@ class LLMEngine:
         generated_text = prefix
         inside_string = True
         last_structural_char = '{'
+        prev_char = ''
         print(prefix, end="", flush=True)
         for _ in range(max_tokens):
             stripped_text = generated_text.strip()
@@ -108,7 +109,6 @@ class LLMEngine:
                 raw_logits = (
                     self.model.get_logits_from_input_ids(input_ids)
                 )
-
                 if hasattr(raw_logits, "detach"):
                     logits = raw_logits.detach().cpu().numpy()
                 elif hasattr(raw_logits, "numpy"):
@@ -132,7 +132,6 @@ class LLMEngine:
             clean_word = raw_word.replace("Ġ", " ").replace("Ċ", "\n")
             print(clean_word, end="", flush=True)
             generated_text += clean_word
-            prev_char = ''
             for char in clean_word:
                 if char == '"':
                     escaped = (prev_char == '\\')
