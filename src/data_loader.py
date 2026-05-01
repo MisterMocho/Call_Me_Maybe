@@ -50,7 +50,7 @@ def load_data(func_defs_path: Path,
         tools = TypeAdapter(list[FunctionDefinition]).validate_python(raw_defs)
         print(f"Success: {len(tools)} functions loaded and validated.")
     except Exception as e:
-        print(f"Definition Error: {e}")
+        print(f"Definition Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     try:
@@ -60,5 +60,5 @@ def load_data(func_defs_path: Path,
         print(f"Success {len(prompts)} test prompts loaded")
         return tools, prompts
     except Exception as e:
-        print(f"Error on the tests: {e}")
+        print(f"Error on the tests: {e}", file=sys.stderr)
         sys.exit(1)

@@ -74,12 +74,9 @@ class LLMEngine:
         self.model: Any = Small_LLM_Model()
         vocab_path_str: str = str(self.model.get_path_to_vocab_file())
         self.vocab = VocabLoader(Path(vocab_path_str))
-        symbols = ['{', '"', ':']
-        json_symbols = {sym: self.vocab.find_tokens_for_char(sym)
-                        for sym in symbols}
-        self.t_quote = next(iter(json_symbols['"']))
-        self.t_colon = next(iter(json_symbols[':']))
-        self.t_open_brace = next(iter(json_symbols['{']))
+        self.t_quote = self._require_token_id('"')
+        self.t_colon = self._require_token_id(':')
+        self.t_open_brace = self._require_token_id('{')
         allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEF"
                             "GHIJKLMNOPQRSTUVWXYZ0123456789"
                             "\"{}:,.-_()[]+*?!'\\/|@#$%&=")
@@ -110,6 +107,13 @@ class LLMEngine:
         for t_id in strict_keys_tokens:
             self.mask_strict_keys[t_id] = 0.0
         print("LLM Engine and Vocab ready!")
+
+    def _require_token_id(self, token: str) -> int:
+        """Look up a token ID and fail loudly if it is missing."""
+        tid = self.vocab.get_token_id(token)
+        if tid is None:
+            raise ValueError(f"Required token not found: {token!r}")
+        return tid
 
     def custom_decode(self, token_ids: list[int]) -> str:
         """
