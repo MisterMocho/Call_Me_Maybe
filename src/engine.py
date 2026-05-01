@@ -1,3 +1,26 @@
+"""
+Constrained-decoding inference engine for the function-calling agent.
+
+The engine wraps the raw small LLM provided by the SDK and intercepts
+its generation loop token by token. Three cooperating mechanisms ensure
+that the model only ever produces syntactically valid JSON conforming
+to the function-calling format:
+
+    1. Logit masking:    illegal tokens have their probability driven
+                         to negative infinity before ``argmax``.
+    2. Fast-forwarding:  when the next token is structurally
+                         determined, the model is bypassed entirely.
+    3. Brace counting:   generation halts the moment the JSON object
+                         is closed, preventing trailing prose.
+
+A small finite-state machine, encoded in three persistent pieces of
+state (``inside_string``, ``last_structural_char``, ``prev_char``),
+keeps these mechanisms aware of the current position within the JSON
+grammar even when the BPE tokenizer splits or fuses characters across
+token boundaries.
+"""
+
+
 import numpy as np
 from pathlib import Path
 from typing import Any
@@ -6,7 +29,47 @@ from src.vocab_loader import VocabLoader
 
 
 class LLMEngine:
+    """
+    Constrained-decoding wrapper around the project's small LLM.
+
+    On construction the engine loads the underlying model, reads its
+    vocabulary, and pre-computes two logit masks used to enforce the
+    function-calling JSON grammar at every step of generation:
+
+        * ``mask_json``         — the broad mask applied inside string
+                                  values; permits everything that may
+                                  legitimately appear in a JSON value.
+        * ``mask_strict_keys``  — the narrow mask applied immediately
+                                  after ``{`` or ``,``, where only a
+                                  JSON key may legally start.
+
+    Both masks are dense ``numpy`` arrays the size of the model's
+    vocabulary, with ``0.0`` for allowed tokens and ``-inf`` for
+    forbidden ones. Masking is therefore a single vector addition at
+    inference time.
+
+    Attributes:
+        model: The underlying SDK model. Typed as ``Any`` because the
+            SDK does not expose a public type.
+        vocab: BPE vocabulary lookup helper.
+        t_quote, t_colon, t_open_brace: Token IDs reused by the
+            fast-forwarding logic.
+        mask_json: Dense logit mask used inside string values.
+        mask_strict_keys: Dense logit mask used after ``{`` or ``,``.
+    """
     def __init__(self) -> None:
+        """
+        Initialise the SDK model, load the vocabulary, and precompute
+        the two logit masks used during generation.
+
+        The constructor performs the one-time work that does not
+        depend on the prompt: identifying structural token IDs,
+        scanning the vocabulary for tokens whose surface form lies
+        within the legal JSON character set, and probing the model
+        for its true vocabulary size so that mask arrays are
+        correctly sized.
+        """
+
         print("Initializing LLM engine...")
         self.model: Any = Small_LLM_Model()
         vocab_path_str: str = str(self.model.get_path_to_vocab_file())
@@ -49,6 +112,21 @@ class LLMEngine:
         print("LLM Engine and Vocab ready!")
 
     def custom_decode(self, token_ids: list[int]) -> str:
+        """
+        Convert a list of token IDs back into a human-readable string.
+
+        The vocabulary is consulted directly rather than using the
+        SDK's decoder, which avoids pulling in additional model
+        machinery. BPE markers are normalised to their textual
+        equivalents: ``Ġ`` becomes a space, ``Ċ`` becomes a newline.
+
+        Args:
+            token_ids: List of integer IDs produced by the engine.
+
+        Returns:
+            The decoded string with BPE markers replaced.
+        """
+
         # 1. Gets the raw strings from the dictionary
         raw_text = "".join(self.vocab.id_to_token.get(t_id, "")
                            for t_id in token_ids)
@@ -57,6 +135,55 @@ class LLMEngine:
         return clean_text
 
     def generate(self, prompt: str, max_tokens: int = 75) -> str:
+        """
+        Run constrained generation and return the decoded JSON string.
+
+        The method wraps the prompt with the deterministic JSON prefix
+        ``{"name":"`` and then enters a token-by-token loop. At each
+        step one of two things happens:
+
+            * If the next character is structurally determined by the
+              JSON grammar (the ``:`` after a key, the ``{`` after
+              ``"parameters":``, etc.) the corresponding token ID is
+              injected directly without consulting the model.
+            * Otherwise the model is asked for its logits, which are
+              then masked according to whether the cursor is at a
+              position that may start a key (after ``{`` or ``,``)
+              or anywhere else, and the highest-scoring legal token
+              is chosen.
+
+        Three pieces of state persist for the whole generation and
+        across token boundaries:
+
+            * ``inside_string``       — toggles on every unescaped
+                                        ``"``.
+            * ``last_structural_char``— the most recent structural
+                                        JSON character (``{``, ``}``,
+                                        ``:``, ``,``) seen outside a
+                                        string.
+            * ``prev_char``           — the character immediately
+                                        emitted, used to recognise
+                                        escape sequences such as
+                                        ``\\"`` even when the BPE
+                                        tokenizer splits ``\\`` and
+                                        ``"`` into separate tokens.
+
+        Generation stops as soon as the brace counter returns to zero
+        or the EOS token is produced, guaranteeing that no
+        conversational prose can leak after the JSON closes.
+
+        Args:
+            prompt: The fully assembled system prompt, including the
+                tool list and the current user query.
+            max_tokens: Hard cap on the number of generation
+                iterations. Acts as a safety net; the brace counter
+                is the primary stopping condition.
+
+        Returns:
+            The decoded JSON string emitted by the engine. Always a
+            valid JSON object by construction.
+        """
+
         print("\n--- Intercepting Model ---")
         # Transforms the prompt text in ID's the llm understands
         input_tensor = self.model.encode(prompt)

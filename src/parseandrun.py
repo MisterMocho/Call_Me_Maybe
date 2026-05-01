@@ -1,3 +1,24 @@
+"""
+CLI orchestration, prompt assembly, and result post-processing.
+
+This module is the seam between user input on the command line and the
+constrained-decoding engine. It is responsible for three things:
+
+    1. Parsing CLI arguments and loading the two JSON input files.
+    2. Building the system prompt that lists the available tools and
+       the few-shot examples that anchor the model's regex style.
+    3. Running the engine over every test prompt, casting the parsed
+       parameters to the types declared in the schema, and writing
+       the final results to disk.
+
+The few-shot examples deliberately use placeholder names
+(``<tool_name>``, ``<param>``) so that the prompt teaches the model
+the expected output shape without leaking the real schema. This is
+important because the project is meant to generalise to function
+sets and prompts that are unknown at development time.
+"""
+
+
 import json
 import argparse
 from pathlib import Path
@@ -8,6 +29,22 @@ from src.schemas import FunctionDefinition, TestPrompt
 
 def parse_and_load() -> tuple[list[FunctionDefinition],
                               list[TestPrompt], Path]:
+    """
+    Parse CLI arguments and load the two JSON input files.
+
+    The function defines three command-line options matching the
+    layout required by the subject and falls back to the default
+    paths under ``data/`` when none are supplied.
+
+    Returns:
+        A tuple ``(tools, prompts, output_path)``:
+
+            * ``tools`` is the validated list of available functions.
+            * ``prompts`` is the validated list of user queries to run.
+            * ``output_path`` is the destination path for the JSON
+              results written at the end of :func:`run_llm`.
+    """
+
     parser = argparse.ArgumentParser(description="Call Me Maybe -"
                                      "Function Calling Inference")
     parser.add_argument("--functions_definition", type=str,
@@ -34,6 +71,37 @@ def parse_and_load() -> tuple[list[FunctionDefinition],
 def run_llm(tools: list[FunctionDefinition],
             prompts: list[TestPrompt],
             output_path: Path) -> None:
+    """
+    Run the engine over every test prompt and write the results.
+
+    The function performs four logical phases:
+
+        1. Build a single shared system prompt listing every
+           available tool in compact JSON form, plus a handful of
+           critical rules and few-shot examples that anchor the
+           regex style and quoting conventions.
+        2. For each user prompt, append it to the shared system
+           prompt and call the engine to obtain a constrained JSON
+           string.
+        3. Parse the JSON, look up the chosen function in the
+           schema, and cast each parameter to the declared type
+           (``number`` -> ``float``, ``integer`` -> ``int``, etc.).
+           This guards against the model emitting a numeric value
+           wrapped in quotes and similar minor mismatches.
+        4. Collect every result into a list and write it to disk
+           in the format expected by the grader.
+
+    Failures during JSON parsing are caught per-prompt: a single
+    bad generation cannot abort the whole run.
+
+    Args:
+        tools: Validated list of available function definitions.
+        prompts: Validated list of user prompts to evaluate.
+        output_path: Destination path for the results JSON. The
+            parent directory is created if it does not already
+            exist.
+    """
+
     engine = LLMEngine()
     final_results = []
     # 4. Base instructions
